@@ -18,7 +18,7 @@
 #define SI2168_PRIV_H
 
 #include "si2168.h"
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 #include <linux/firmware.h>
 #include <linux/i2c-mux.h>
 #include <linux/kernel.h>
@@ -53,6 +53,7 @@ struct si2168_dev {
 	bool fef_inv;
 	int agc_pin;
 	bool agc_inv;
+	bool spectral_inversion;
 };
 
 /* firmware command struct */

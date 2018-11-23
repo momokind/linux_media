@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * lib/locking-selftest.c
  *
@@ -28,7 +29,7 @@
  */
 static unsigned int debug_locks_verbose;
 
-static DEFINE_WW_CLASS(ww_lockdep);
+static DEFINE_WD_CLASS(ww_lockdep);
 
 static int __init setup_debug_locks_verbose(char *str)
 {

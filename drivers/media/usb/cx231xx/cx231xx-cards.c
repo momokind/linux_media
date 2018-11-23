@@ -31,7 +31,7 @@
 #include <media/v4l2-common.h>
 
 #include <media/drv-intf/cx25840.h>
-#include "dvb-usb-ids.h"
+#include <media/dvb-usb-ids.h>
 #include "xc5000.h"
 #include "tda18271.h"
 
@@ -725,7 +725,8 @@ struct cx231xx_board cx231xx_boards[] = {
 		.tuner_i2c_master = I2C_1_MUX_3,
 		.demod_i2c_master = { I2C_1_MUX_3 },
 		.has_dvb = 1,
-		.demod_addr = 0x0e,
+		.adap_cnt = 1,
+		.demod_addr = 0x64, /* 0xc8 >> 1 */
 		.norm = V4L2_STD_PAL,
 
 		.input = {{
@@ -764,7 +765,8 @@ struct cx231xx_board cx231xx_boards[] = {
 		.tuner_i2c_master = I2C_1_MUX_3,
 		.demod_i2c_master = { I2C_1_MUX_3 },
 		.has_dvb = 1,
-		.demod_addr = 0x0e,
+		.adap_cnt = 1,
+		.demod_addr = 0x64, /* 0xc8 >> 1 */
 		.norm = V4L2_STD_PAL,
 
 		.input = {{
@@ -804,7 +806,7 @@ struct cx231xx_board cx231xx_boards[] = {
 		.demod_i2c_master = { I2C_1_MUX_3 },
 		.has_dvb = 1,
 		.adap_cnt = 1,
-		.demod_addr = 0x0e,
+		.demod_addr = 0x59, /* 0xb2 >> 1 */
 		.norm = V4L2_STD_NTSC,
 
 		.input = {{
@@ -858,6 +860,7 @@ struct cx231xx_board cx231xx_boards[] = {
 		.demod_addr = 0x64, /* 0xc8 >> 1 */
 		.demod_i2c_master = { I2C_1_MUX_3 },
 		.has_dvb = 1,
+		.adap_cnt = 1,
 		.decoder = CX231XX_AVDECODER,
 		.norm = V4L2_STD_PAL,
 		.output_mode = OUT_MODE_VIP11,
@@ -881,6 +884,35 @@ struct cx231xx_board cx231xx_boards[] = {
 			.gpio = NULL,
 		} },
 	},
+	[CX231XX_BOARD_ASTROMETA_T2HYBRID] = {
+		.name = "Astrometa T2hybrid",
+		.tuner_type = TUNER_ABSENT,
+		.has_dvb = 1,
+		.adap_cnt = 1,
+		.decoder = CX231XX_AVDECODER,
+		.output_mode = OUT_MODE_VIP11,
+		.agc_analog_digital_select_gpio = 0x01,
+		.ctl_pin_status_mask = 0xffffffc4,
+		.demod_addr = 0x18, /* 0x30 >> 1 */
+		.demod_i2c_master = { I2C_1_MUX_1 },
+		.gpio_pin_status_mask = 0xa,
+		.norm = V4L2_STD_NTSC,
+		.tuner_addr = 0x3a, /* 0x74 >> 1 */
+		.tuner_i2c_master = I2C_1_MUX_3,
+		.tuner_scl_gpio = 0x1a,
+		.tuner_sda_gpio = 0x1b,
+		.tuner_sif_gpio = 0x05,
+		.input = {{
+				.type = CX231XX_VMUX_TELEVISION,
+				.vmux = CX231XX_VIN_1_1,
+				.amux = CX231XX_AMUX_VIDEO,
+			}, {
+				.type = CX231XX_VMUX_COMPOSITE1,
+				.vmux = CX231XX_VIN_2_1,
+				.amux = CX231XX_AMUX_LINE_IN,
+			},
+		},
+	},
 	[CX231XX_BOARD_TBS_5280] = {
 		.name = "TurboSight TBS 5280",
 		.tuner_type = TUNER_ABSENT,
@@ -893,11 +925,12 @@ struct cx231xx_board cx231xx_boards[] = {
 		.tuner_scl_gpio = -1,
 		.tuner_sda_gpio = -1,
 		.gpio_pin_status_mask = 0x4001000,
+		.tuner_addr = 0x60, /* 0xc0 >> 1 */
 		.tuner_i2c_master = I2C_2,
+		.demod_addr = 0x6c,
 		.demod_i2c_master = { I2C_1_MUX_3, I2C_1_MUX_3},
 		.has_dvb = 1,
 		.adap_cnt = 2,
-		.demod_addr = 0x6c,
 		.norm = V4L2_STD_PAL_M,
 		.no_audio = 1,
 		
@@ -932,11 +965,12 @@ struct cx231xx_board cx231xx_boards[] = {
 		.tuner_scl_gpio = -1,
 		.tuner_sda_gpio = -1,
 		.gpio_pin_status_mask = 0x4001000,
+		.tuner_addr = 0x60, /* 0xc0 >> 1 */
 		.tuner_i2c_master = I2C_2,
+		.demod_addr = 0x64, /* 0xc8 >> 1 */
 		.demod_i2c_master = { I2C_1_MUX_3, I2C_2},
 		.has_dvb = 1,
 		.adap_cnt = 2,
-		.demod_addr = 0x6c,
 		.norm = V4L2_STD_PAL_M,
 		.no_audio = 1,
 		
@@ -973,9 +1007,9 @@ struct cx231xx_board cx231xx_boards[] = {
 		.gpio_pin_status_mask = 0x4001000,
 		.tuner_i2c_master = I2C_2,
 		.demod_i2c_master = { I2C_1_MUX_3, I2C_2},
+		.demod_addr = 0x64,
 		.has_dvb = 1,
 		.adap_cnt = 2,
-		.demod_addr = 0x64,
 		.norm = V4L2_STD_PAL_M,
 		.no_audio = 1,
 		
@@ -998,33 +1032,112 @@ struct cx231xx_board cx231xx_boards[] = {
 			.gpio = NULL,
 		} },
 	},
-	[CX231XX_BOARD_ASTROMETA_T2HYBRID] = {
-		.name = "Astrometa T2hybrid",
+	[CX231XX_BOARD_THE_IMAGING_SOURCE_DFG_USB2_PRO] = {
+		.name = "The Imaging Source DFG/USB2pro",
 		.tuner_type = TUNER_ABSENT,
-		.has_dvb = 1,
 		.decoder = CX231XX_AVDECODER,
 		.output_mode = OUT_MODE_VIP11,
-		.agc_analog_digital_select_gpio = 0x01,
-		.ctl_pin_status_mask = 0xffffffc4,
-		.demod_addr = 0x18, /* 0x30 >> 1 */
-		.demod_i2c_master = { I2C_1_MUX_1 },
-		.gpio_pin_status_mask = 0xa,
-		.norm = V4L2_STD_NTSC,
-		.tuner_addr = 0x3a, /* 0x74 >> 1 */
-		.tuner_i2c_master = I2C_1_MUX_3,
+		.demod_xfer_mode = 0,
+		.ctl_pin_status_mask = 0xFFFFFFC4,
+		.agc_analog_digital_select_gpio = 0x0c,
+		.gpio_pin_status_mask = 0x4001000,
+		.norm = V4L2_STD_PAL,
+		.no_alt_vanc = 1,
+		.external_av = 1,
+		.input = {{
+			.type = CX231XX_VMUX_COMPOSITE1,
+			.vmux = CX231XX_VIN_1_1,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		}, {
+			.type = CX231XX_VMUX_SVIDEO,
+			.vmux = CX231XX_VIN_2_1 |
+				(CX231XX_VIN_2_2 << 8) |
+				CX25840_SVIDEO_ON,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		} },
+	},
+	[CX231XX_BOARD_HAUPPAUGE_935C] = {
+		.name = "Hauppauge WinTV-HVR-935C",
+		.tuner_type = TUNER_ABSENT,
+		.tuner_addr = 0x60,
+		.tuner_gpio = RDE250_XCV_TUNER,
+		.tuner_sif_gpio = 0x05,
 		.tuner_scl_gpio = 0x1a,
 		.tuner_sda_gpio = 0x1b,
-		.tuner_sif_gpio = 0x05,
+		.decoder = CX231XX_AVDECODER,
+		.output_mode = OUT_MODE_VIP11,
+		.demod_xfer_mode = 0,
+		.ctl_pin_status_mask = 0xFFFFFFC4,
+		.agc_analog_digital_select_gpio = 0x0c,
+		.gpio_pin_status_mask = 0x4001000,
+		.tuner_i2c_master = I2C_1_MUX_3,
+		.demod_i2c_master = { I2C_1_MUX_3 },
+		.has_dvb = 1,
+		.adap_cnt = 1,
+		.demod_addr = 0x64, /* 0xc8 >> 1 */
+		.norm = V4L2_STD_PAL,
+
 		.input = {{
-				.type = CX231XX_VMUX_TELEVISION,
-				.vmux = CX231XX_VIN_1_1,
-				.amux = CX231XX_AMUX_VIDEO,
-			}, {
-				.type = CX231XX_VMUX_COMPOSITE1,
-				.vmux = CX231XX_VIN_2_1,
-				.amux = CX231XX_AMUX_LINE_IN,
-			},
-		},
+			.type = CX231XX_VMUX_TELEVISION,
+			.vmux = CX231XX_VIN_3_1,
+			.amux = CX231XX_AMUX_VIDEO,
+			.gpio = NULL,
+		}, {
+			.type = CX231XX_VMUX_COMPOSITE1,
+			.vmux = CX231XX_VIN_2_1,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		}, {
+			.type = CX231XX_VMUX_SVIDEO,
+			.vmux = CX231XX_VIN_1_1 |
+				(CX231XX_VIN_1_2 << 8) |
+				CX25840_SVIDEO_ON,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		} },
+	},
+	[CX231XX_BOARD_HAUPPAUGE_975] = {
+		.name = "Hauppauge WinTV-HVR-975",
+		.tuner_type = TUNER_ABSENT,
+		.tuner_addr = 0x60,
+		.tuner_gpio = RDE250_XCV_TUNER,
+		.tuner_sif_gpio = 0x05,
+		.tuner_scl_gpio = 0x1a,
+		.tuner_sda_gpio = 0x1b,
+		.decoder = CX231XX_AVDECODER,
+		.output_mode = OUT_MODE_VIP11,
+		.demod_xfer_mode = 0,
+		.ctl_pin_status_mask = 0xFFFFFFC4,
+		.agc_analog_digital_select_gpio = 0x0c,
+		.gpio_pin_status_mask = 0x4001000,
+		.tuner_i2c_master = I2C_1_MUX_3,
+		.demod_i2c_master = { I2C_1_MUX_3 },
+		.has_dvb = 1,
+		.adap_cnt = 1,
+		.demod_addr = 0x59, /* 0xb2 >> 1 */
+		.demod_addr2 = 0x64, /* 0xc8 >> 1 */
+		.norm = V4L2_STD_ALL,
+
+		.input = {{
+			.type = CX231XX_VMUX_TELEVISION,
+			.vmux = CX231XX_VIN_3_1,
+			.amux = CX231XX_AMUX_VIDEO,
+			.gpio = NULL,
+		}, {
+			.type = CX231XX_VMUX_COMPOSITE1,
+			.vmux = CX231XX_VIN_2_1,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		}, {
+			.type = CX231XX_VMUX_SVIDEO,
+			.vmux = CX231XX_VIN_1_1 |
+				(CX231XX_VIN_1_2 << 8) |
+				CX25840_SVIDEO_ON,
+			.amux = CX231XX_AMUX_LINE_IN,
+			.gpio = NULL,
+		} },
 	},
 };
 const unsigned int cx231xx_bcount = ARRAY_SIZE(cx231xx_boards);
@@ -1049,6 +1162,9 @@ struct usb_device_id cx231xx_id_table[] = {
 	 .driver_info = CX231XX_BOARD_CNXT_RDE_250},
 	{USB_DEVICE(0x0572, 0x58A0),
 	 .driver_info = CX231XX_BOARD_CNXT_RDU_250},
+	/* AverMedia DVD EZMaker 7 */
+	{USB_DEVICE(0x07ca, 0xc039),
+	 .driver_info = CX231XX_BOARD_CNXT_VIDEO_GRABBER},
 	{USB_DEVICE(0x2040, 0xb110),
 	 .driver_info = CX231XX_BOARD_HAUPPAUGE_USB2_FM_PAL},
 	{USB_DEVICE(0x2040, 0xb111),
@@ -1057,6 +1173,10 @@ struct usb_device_id cx231xx_id_table[] = {
 	 .driver_info = CX231XX_BOARD_HAUPPAUGE_EXETER},
 	{USB_DEVICE(0x2040, 0xb123),
 	 .driver_info = CX231XX_BOARD_HAUPPAUGE_955Q},
+	{USB_DEVICE(0x2040, 0xb151),
+	 .driver_info = CX231XX_BOARD_HAUPPAUGE_935C},
+	{USB_DEVICE(0x2040, 0xb150),
+	 .driver_info = CX231XX_BOARD_HAUPPAUGE_975},
 	{USB_DEVICE(0x2040, 0xb130),
 	 .driver_info = CX231XX_BOARD_HAUPPAUGE_930C_HD_1113xx},
 	{USB_DEVICE(0x2040, 0xb131),
@@ -1103,6 +1223,8 @@ struct usb_device_id cx231xx_id_table[] = {
 	 .driver_info = CX231XX_BOARD_TBS_5281},
 	{USB_DEVICE(0x734c, 0x5990),
 	 .driver_info = CX231XX_BOARD_TBS_5990},
+	{USB_DEVICE(0x199e, 0x8002),
+	 .driver_info = CX231XX_BOARD_THE_IMAGING_SOURCE_DFG_USB2_PRO},
 	{},
 };
 
@@ -1243,7 +1365,7 @@ static void cx231xx_config_tuner(struct cx231xx *dev)
 static int read_eeprom(struct cx231xx *dev, struct i2c_client *client,
 		       u8 *eedata, int len)
 {
-	int ret = 0;
+	int ret;
 	u8 start_offset = 0;
 	int len_todo = len;
 	u8 *eedata_cur = eedata;
@@ -1319,6 +1441,8 @@ void cx231xx_card_setup(struct cx231xx *dev)
 	case CX231XX_BOARD_HAUPPAUGE_930C_HD_1113xx:
 	case CX231XX_BOARD_HAUPPAUGE_930C_HD_1114xx:
 	case CX231XX_BOARD_HAUPPAUGE_955Q:
+	case CX231XX_BOARD_HAUPPAUGE_935C:
+	case CX231XX_BOARD_HAUPPAUGE_975:
 		{
 			struct eeprom {
 				struct tveeprom tvee;

@@ -38,7 +38,13 @@
 #include <media/v4l2-fh.h>
 #include <media/rc-core.h>
 #include <media/i2c/ir-kbd-i2c.h>
-#include <media/videobuf-dvb.h>
+
+#include <media/dvbdev.h>
+#include <media/dmxdev.h>
+#include <media/dvb_demux.h>
+#include <media/dvb_net.h>
+#include <media/dvb_frontend.h>
+#include <media/v4l2-common.h>
 
 #include "cx231xx-reg.h"
 #include "cx231xx-pcb-cfg.h"
@@ -83,7 +89,9 @@
 #define CX231XX_BOARD_TBS_5280 25
 #define CX231XX_BOARD_TBS_5281 26
 #define CX231XX_BOARD_TBS_5990 27
-
+#define CX231XX_BOARD_THE_IMAGING_SOURCE_DFG_USB2_PRO 28
+#define CX231XX_BOARD_HAUPPAUGE_935C 29
+#define CX231XX_BOARD_HAUPPAUGE_975 30
 
 /* Limits minimum and default number of buffers */
 #define CX231XX_MIN_BUF                 4
@@ -346,6 +354,7 @@ struct cx231xx_board {
 
 	/* demod related */
 	int demod_addr;
+	int demod_addr2;
 	u8 demod_xfer_mode;	/* 0 - Serial; 1 - parallel */
 
 	int adap_cnt;
@@ -549,8 +558,6 @@ struct cx231xx_tsport {
 	int                        nr;
 	int                        sram_chno;
 
-	struct videobuf_dvb_frontends frontends;
-
 	/* dma queues */
 
 	u32                        ts_packet_size;
@@ -593,8 +600,10 @@ struct cx231xx_tsport {
 	void                       *port_priv;
 };
 
+#define CX231XX_DVB_MAX_FRONTENDS 2
+
 struct cx231xx_dvb {
-	struct dvb_frontend *frontend;
+	struct dvb_frontend *frontend[CX231XX_DVB_MAX_FRONTENDS];
 
 	/* feed count management */
 	struct mutex lock;
@@ -608,7 +617,7 @@ struct cx231xx_dvb {
 	struct dmx_frontend fe_hw;
 	struct dmx_frontend fe_mem;
 	struct dvb_net net;
-	struct i2c_client *i2c_client_demod;
+	struct i2c_client *i2c_client_demod[CX231XX_DVB_MAX_FRONTENDS];
 	struct i2c_client *i2c_client_tuner;
 
 	void *adap_priv;

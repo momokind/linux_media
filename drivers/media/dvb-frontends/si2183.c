@@ -13,7 +13,7 @@
  */
 
 #include "si2183.h"
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 #include <linux/firmware.h>
 #include <linux/i2c-mux.h>
 
@@ -45,6 +45,7 @@ static const struct dvb_frontend_ops si2183_ops;
 LIST_HEAD(silist);
 
 struct si_base {
+	struct mutex i2c_mutex;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	struct i2c_mux_core *muxc;
 #endif
@@ -73,11 +74,17 @@ struct si2183_dev {
 	u8 ts_mode;
 	bool ts_clock_inv;
 	bool ts_clock_gapped;
+	int start_clk_mode;
 	u8 agc_mode;
 	struct si_base *base;
 	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
 	u8 rf_in;
 	u8 active_fe;
+	void (*TS_switch)(struct i2c_adapter * i2c,u8 flag);
+	void (*LED_switch)(struct i2c_adapter * i2c,u8 flag);
+
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
 };
 
 /* Own I2C adapter locking is needed because of I2C gate logic. */
@@ -173,11 +180,13 @@ err:
 
 static int si2183_cmd_execute(struct i2c_client *client, struct si2183_cmd *cmd)
 {
+	struct si2183_dev *dev = i2c_get_clientdata(client);
 	int ret;
 
-	i2c_lock_adapter(client->adapter);
+
+	mutex_lock(&dev->base->i2c_mutex);
 	ret = si2183_cmd_execute_unlocked(client, cmd);
-	i2c_unlock_adapter(client->adapter);
+	mutex_unlock(&dev->base->i2c_mutex);
 
 	return ret;
 }
@@ -312,7 +321,7 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	dev->fe_status = *status;
 
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
-			*status, cmd.rlen, cmd.args);
+			*status, cmd.rlen, cmd.args); 
 
 	if (fe->ops.tuner_ops.get_rf_strength)
 	{
@@ -416,6 +425,9 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,6);
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
@@ -479,6 +491,9 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop,symb;
+
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,6);
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
@@ -548,6 +563,9 @@ static int si2183_set_dvbs(struct dvb_frontend *fe)
 	int ret;
 	u16 prop;
 	u32 pls_mode, pls_code;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,2);
 
 	/*set SAT agc*/
 	memcpy(cmd.args, "\x8a\x1d\x12\x0\x0\x0", 6);
@@ -632,6 +650,9 @@ static int si2183_set_dvbt(struct dvb_frontend *fe)
 	int ret;
 	u16 prop;
 
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,1);
+
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
  	cmd.wlen = 6;
@@ -710,6 +731,10 @@ static int si2183_set_isdbt(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,5);
+
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1; 
@@ -787,6 +812,9 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 		
 		}
 	}
+
+	if(dev->TS_switch)
+		dev->TS_switch(dev->base->i2c,1);
 		
 	if (fe->ops.tuner_ops.set_params) {
 #ifndef SI2183_USE_I2C_MUX
@@ -868,7 +896,12 @@ static int si2183_init(struct dvb_frontend *fe)
 	c->cnr.stat[0].scale = FE_SCALE_DECIBEL;
 
 	/* initialize */
-	memcpy(cmd.args, "\xc0\x12\x00\x0c\x00\x0d\x16\x00\x00\x00\x00\x00\x00", 13);
+	memcpy(cmd.args, "\xc0\x12\x00\x0c\x00\x0d\x16\x00\x00\x00\x00\x00\x00", 13);	
+	if(dev->start_clk_mode == 1){
+	   cmd.args[3] =0;
+	   cmd.args[5] = 0x6;
+	}
+	
 	cmd.wlen = 13;
 	cmd.rlen = 0;
 	ret = si2183_cmd_execute(client, &cmd);
@@ -878,6 +911,9 @@ static int si2183_init(struct dvb_frontend *fe)
 	if (dev->fw_loaded) {
 		/* resume */
 		memcpy(cmd.args, "\xc0\x06\x08\x0f\x00\x20\x21\x01", 8);
+		
+		if(dev->start_clk_mode==1)
+				cmd.args[6]=0x31;	
 		cmd.wlen = 8;
 		cmd.rlen = 1;
 		ret = si2183_cmd_execute(client, &cmd);
@@ -896,6 +932,9 @@ static int si2183_init(struct dvb_frontend *fe)
 
 	/* power up */
 	memcpy(cmd.args, "\xc0\x06\x01\x0f\x00\x20\x20\x01", 8);
+	if(dev->start_clk_mode ==1 ){
+	   cmd.args[6]	= 0x30;
+	}
 	cmd.wlen = 8;
 	cmd.rlen = 1;
 	ret = si2183_cmd_execute(client, &cmd);
@@ -1193,27 +1232,27 @@ static int si2183_set_property(struct dvb_frontend *fe,
 		case SYS_DVBS:
 		case SYS_DVBS2:
 		case SYS_DSS:
-			fe->ops.info.frequency_min = 950000;
-			fe->ops.info.frequency_max = 2150000;
-			fe->ops.info.frequency_stepsize = 0;
+			fe->ops.info.frequency_min_hz = 950 * MHz;
+			fe->ops.info.frequency_max_hz = 2150 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 0;
 			break;
 		case SYS_ISDBT:
-			fe->ops.info.frequency_min = 42000000;
-			fe->ops.info.frequency_max = 1002000000;
-			fe->ops.info.frequency_stepsize = 0;
+			fe->ops.info.frequency_min_hz = 42 * MHz;
+			fe->ops.info.frequency_max_hz = 1002 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 0;
 			break;
 		case SYS_DVBC_ANNEX_A:
 		case SYS_DVBC_ANNEX_B:
-			fe->ops.info.frequency_min = 47000000;
-			fe->ops.info.frequency_max = 862000000;
-			fe->ops.info.frequency_stepsize = 62500;
+			fe->ops.info.frequency_min_hz = 47 * MHz;
+			fe->ops.info.frequency_max_hz = 862 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 62500;
 			break;
 		case SYS_DVBT:
 		case SYS_DVBT2:
 		default:
-			fe->ops.info.frequency_min = 174000000;
-			fe->ops.info.frequency_max = 862000000;
-			fe->ops.info.frequency_stepsize = 250000;
+			fe->ops.info.frequency_min_hz = 174 * MHz;
+			fe->ops.info.frequency_max_hz = 862 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 250000;
 			break;
 		}
 		break;
@@ -1327,6 +1366,29 @@ err:
 	return ret;
 }
 
+static void si2183_spi_read(struct dvb_frontend *fe, struct ecp3_info *ecp3inf)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+
+
+	if (dev->read_properties)
+		dev->read_properties(client->adapter,ecp3inf->reg, &(ecp3inf->data));
+
+	return ;
+}
+
+static void si2183_spi_write(struct dvb_frontend *fe,struct ecp3_info *ecp3inf)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+
+	if (dev->write_properties)
+		dev->write_properties(client->adapter,ecp3inf->reg, ecp3inf->data);
+	return ;
+}
+
+
 static const struct dvb_frontend_ops si2183_ops = {
 	.delsys = {SYS_DVBT, SYS_DVBT2,
 		   SYS_ISDBT,
@@ -1381,6 +1443,11 @@ static const struct dvb_frontend_ops si2183_ops = {
 #ifndef SI2183_USE_I2C_MUX
 	.i2c_gate_ctrl			= i2c_gate_ctrl,
 #endif
+
+	.spi_read			= si2183_spi_read,
+	.spi_write			= si2183_spi_write,
+
+
 };
 
 
@@ -1425,6 +1492,7 @@ static int si2183_probe(struct i2c_client *client,
 		dev->base = base;
 		list_add(&base->silist, &silist);
 
+		mutex_init(&base->i2c_mutex);
 #ifdef SI2183_USE_I2C_MUX
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 		/* create mux i2c adapter for tuner */
@@ -1469,8 +1537,13 @@ static int si2183_probe(struct i2c_client *client,
 	dev->fw_loaded = false;
 	dev->snr = 0;
 	dev->stat_resp = 0;
-
 	dev->active_fe = 0;
+	dev->start_clk_mode = config->start_clk_mode;
+	dev->TS_switch = config->TS_switch;
+	dev->LED_switch = config->LED_switch;
+	
+	dev->write_properties = config->write_properties;
+	dev->read_properties = config->read_properties;
 
 	i2c_set_clientdata(client, dev);
 

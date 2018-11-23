@@ -18,7 +18,7 @@
 
 #include "include/apparmor.h"
 #include "include/audit.h"
-#include "include/context.h"
+#include "include/cred.h"
 #include "include/file.h"
 #include "include/match.h"
 #include "include/net.h"
@@ -47,7 +47,8 @@ static void audit_file_mask(struct audit_buffer *ab, u32 mask)
 {
 	char str[10];
 
-	aa_perm_mask_to_str(str, aa_file_perm_chrs, map_mask_to_chr_mask(mask));
+	aa_perm_mask_to_str(str, sizeof(str), aa_file_perm_chrs,
+			    map_mask_to_chr_mask(mask));
 	audit_log_string(ab, str);
 }
 
@@ -227,18 +228,12 @@ static u32 map_old_perms(u32 old)
 struct aa_perms aa_compute_fperms(struct aa_dfa *dfa, unsigned int state,
 				  struct path_cond *cond)
 {
-	struct aa_perms perms;
-
 	/* FIXME: change over to new dfa format
 	 * currently file perms are encoded in the dfa, new format
 	 * splits the permissions from the dfa.  This mapping can be
 	 * done at profile load
 	 */
-	perms.deny = 0;
-	perms.kill = perms.stop = 0;
-	perms.complain = perms.cond = 0;
-	perms.hide = 0;
-	perms.prompt = 0;
+	struct aa_perms perms = { };
 
 	if (uid_eq(current_fsuid(), cond->uid)) {
 		perms.allow = map_old_perms(dfa_user_allow(dfa, state));

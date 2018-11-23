@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  *  ebtables
  *
@@ -15,10 +16,6 @@
 #include <linux/if.h>
 #include <linux/if_ether.h>
 #include <uapi/linux/netfilter_bridge/ebtables.h>
-
-/* return values for match() functions */
-#define EBT_MATCH 0
-#define EBT_NOMATCH 1
 
 struct ebt_match {
 	struct list_head list;

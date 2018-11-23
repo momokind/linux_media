@@ -41,6 +41,8 @@ struct si2183_config {
 	/* TS clock inverted */
 	bool ts_clock_inv;
 
+	int  start_clk_mode;  //0 terrestrial mode 1: satellite mode
+	
 	/* TS clock gapped */
 	bool ts_clock_gapped;
 	/*agc*/
@@ -50,6 +52,12 @@ struct si2183_config {
 	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
 	/*rf no.*/
 	u8 rf_in;
+
+	void (*TS_switch)(struct i2c_adapter * i2c,u8 flag);
+	void (*LED_switch)(struct i2c_adapter * i2c,u8 flag);
+	//update the FW.
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
 };
 
 #endif

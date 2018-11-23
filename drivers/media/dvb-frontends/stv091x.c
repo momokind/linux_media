@@ -33,7 +33,7 @@
 #include <linux/version.h>
 #include <asm/div64.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 #include "stv091x.h"
 #include "stv091x_regs.h"
 
@@ -963,6 +963,10 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	
 	SetMIS(state, p->stream_id);
 
+	/* Set Gold code > 0 */
+	if (p->scrambling_sequence_index)
+	      SetPLS(state, 1, p->scrambling_sequence_index);
+
 	/* Set the Init Symbol rate*/
 	symb = MulDiv32(p->symbol_rate, 65536, state->base->mclk);
 	write_reg(state, RSTV0910_P2_SFRINIT1 + state->regoff,
@@ -1609,11 +1613,9 @@ static struct dvb_frontend_ops stv091x_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
 	.info = {
 		.name			= "STV091x Multistandard",
-		.frequency_min		= 950000,
-		.frequency_max		= 2150000,
-		.frequency_stepsize	= 0,
-		.frequency_tolerance	= 0,
-		.symbol_rate_min	= 1000000,
+		.frequency_min_hz	 = 950 * MHz,
+		.frequency_max_hz 	= 2150 * MHz,
+		.symbol_rate_min	= 100000,
 		.symbol_rate_max	= 70000000,
 		.caps			= FE_CAN_INVERSION_AUTO |
 					  FE_CAN_FEC_AUTO       |

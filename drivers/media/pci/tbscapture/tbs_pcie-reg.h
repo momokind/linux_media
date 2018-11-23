@@ -59,8 +59,8 @@
 #define TBS_DMA_CELL_SIZE	0x10
 
 //#define TBS_AUDIO_CELL_SIZE 2944   //44.1k
-#define TBS_AUDIO_CELL_SIZE 3200   //48k
-
+#define TBS_AUDIO_CELL_SIZE 4096   //48k
+#define DMA_VIDEO_CELL         ( (videodev->Interlaced==1) ? (videodev->width*videodev->height) : (videodev->width*videodev->height*2) )
 //undefine in fpga now
 #define	RISC_INT_BIT		0x08000000
 #define	RISC_SYNCO		0xC0000000
@@ -68,6 +68,18 @@
 #define	RISC_JUMP		0xB0000000
 #define	RISC_LINESTART		0x90000000
 #define	RISC_INLINE		0xA0000000
+
+/* ASI == SDI excep baseaddress */ 
+#define ASI0_BASEADDRESS  0x5000
+#define ASI_CHIP_RST  	0x00
+#define ASI_SPI_CONFIG  0x04
+#define ASI_SPI_CMD  	0x08
+#define ASI_SPI_WT_32  	0x0c
+#define ASI_SPI_ENABLE  0x10
+
+#define ASI_STATUS  	0x00
+#define ASI_SPI_RD_32   0x04
+
 
 
 #endif

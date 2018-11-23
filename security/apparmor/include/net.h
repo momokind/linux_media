@@ -53,7 +53,6 @@
 struct aa_sk_ctx {
 	struct aa_label *label;
 	struct aa_label *peer;
-	struct path path;
 };
 
 #define SK_CTX(X) ((X)->sk_security)
@@ -73,17 +72,16 @@ struct aa_sk_ctx {
 	DEFINE_AUDIT_NET(NAME, OP, SK, (SK)->sk_family, (SK)->sk_type,	\
 			 (SK)->sk_protocol)
 
-/* struct aa_net - network confinement data
- * @allow: basic network families permissions
- * @audit: which network permissions to force audit
- * @quiet: which network permissions to quiet rejects
- */
-struct aa_net {
-	u16 allow[AF_MAX];
-	u16 audit[AF_MAX];
-	u16 quiet[AF_MAX];
-};
 
+#define af_select(FAMILY, FN, DEF_FN)		\
+({						\
+	int __e;				\
+	switch ((FAMILY)) {			\
+	default:				\
+		__e = DEF_FN;			\
+	}					\
+	__e;					\
+})
 
 extern struct aa_sfs_entry aa_sfs_entry_network[];
 
@@ -104,11 +102,5 @@ int aa_sk_perm(const char *op, u32 request, struct sock *sk);
 
 int aa_sock_file_perm(struct aa_label *label, const char *op, u32 request,
 		      struct socket *sock);
-
-
-static inline void aa_free_net_rules(struct aa_net *new)
-{
-	/* NOP */
-}
 
 #endif /* __AA_NET_H */

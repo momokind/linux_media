@@ -96,6 +96,7 @@ struct tbs_audio{
 struct tbs_pcie_dev {
 	struct pci_dev			*pdev;
 	void __iomem			*mmio;
+	int 				nr;
 	
 	struct tbs_audio		audio[2];
 	struct tbs_video		video[2];
@@ -107,5 +108,11 @@ struct tbs_pcie_dev {
 	struct work_struct		audio_work;
 	
 };
+
+/* tbsecp3-asi.c */
+extern u8 sdi_CheckFree(struct tbs_pcie_dev *dev,int asi_base_addr, unsigned char OpbyteNum);
+extern bool sdi_chip_reset(struct tbs_pcie_dev *dev,int asi_base_addr);
+extern int sdi_read16bit(struct tbs_pcie_dev *dev,int asi_base_addr,int reg_addr);
+extern bool sdi_write16bit(struct tbs_pcie_dev *dev,int asi_base_addr, int reg_addr, int data16bit);
 
 #endif
