@@ -31,6 +31,7 @@
 #include "rtl2832_sdr.h"
 #include "mn88472.h"
 #include "mn88473.h"
+#include "cxd2841er.h"
 
 #include "qt1010.h"
 #include "mt2060.h"
